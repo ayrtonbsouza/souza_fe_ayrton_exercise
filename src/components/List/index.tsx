@@ -43,7 +43,6 @@ function List({ items, hasNavigation = true, isLoading }: Props): JSX.Element {
           <FiSearch color="gray.300" />
         </InputLeftElement>
         <Input
-          type="tel"
           placeholder="Search"
           variant="flushed"
           value={filterValue}

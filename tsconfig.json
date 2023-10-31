@@ -13,6 +13,7 @@
     "allowSyntheticDefaultImports": true,
     "downlevelIteration": true,
     "esModuleInterop": true,
+
     "lib": ["DOM", "ESNext", "WebWorker"],
     "outDir": "dist",
     "paths": {

@@ -1,96 +1,115 @@
 import * as React from 'react';
-import {useLocation, useParams} from 'react-router-dom';
-import {ListItem, UserData} from 'types';
-import {getTeamOverview, getUserData} from '../api';
+import { useLocation, useParams } from 'react-router-dom';
+import { type ListItem, type UserData } from 'types';
+import { Flex } from '@chakra-ui/react';
+import { getTeamOverview, getUserData } from '../api';
 import Card from '../components/Card';
-import {Container} from '../components/GlobalComponents';
+
 import Header from '../components/Header';
 import List from '../components/List';
 
-var mapArray = (users: UserData[]) => {
-    return users.map(u => {
-        var columns = [
-            {
-                key: 'Name',
-                value: `${u.firstName} ${u.lastName}`,
-            },
-            {
-                key: 'Display Name',
-                value: u.displayName,
-            },
-            {
-                key: 'Location',
-                value: u.location,
-            },
-        ];
-        return {
-            id: u.id,
-            url: `/user/${u.id}`,
-            columns,
-            navigationProps: u,
-        };
-    }) as ListItem[];
-};
-
-var mapTLead = tlead => {
-    var columns = [
-        {
-            key: 'Team Lead',
-            value: '',
-        },
-        {
-            key: 'Name',
-            value: `${tlead.firstName} ${tlead.lastName}`,
-        },
-        {
-            key: 'Display Name',
-            value: tlead.displayName,
-        },
-        {
-            key: 'Location',
-            value: tlead.location,
-        },
+const mapUsersToListItems = (users: UserData[]): ListItem[] =>
+  users.map(user => {
+    const columns = [
+      {
+        key: 'Name',
+        value: `${user.firstName} ${user.lastName}`,
+      },
+      {
+        key: 'Display Name',
+        value: user.displayName,
+      },
+      {
+        key: 'Location',
+        value: user.location,
+      },
     ];
-    return <Card columns={columns} url={`/user/${tlead.id}`} navigationProps={tlead} />;
+    return {
+      id: user.id,
+      url: `/user/${user.id}`,
+      columns,
+      navigationProps: user,
+    };
+  }) as ListItem[];
+
+const mapTeamLeadToCard = (teamLead: UserData): JSX.Element => {
+  const columns = [
+    {
+      key: 'Team Lead',
+      value: '',
+    },
+    {
+      key: 'Name',
+      value: `${teamLead.firstName} ${teamLead.lastName}`,
+    },
+    {
+      key: 'Display Name',
+      value: teamLead.displayName,
+    },
+    {
+      key: 'Location',
+      value: teamLead.location,
+    },
+  ];
+  return (
+    <Card
+      columns={columns}
+      url={`/user/${teamLead.id}`}
+      navigationProps={teamLead}
+    />
+  );
 };
 
 interface PageState {
-    teamLead?: UserData;
-    teamMembers?: UserData[];
+  teamLead?: UserData;
+  teamMembers?: UserData[];
 }
 
-const TeamOverview = () => {
-    const location = useLocation();
-    const {teamId} = useParams();
-    const [pageData, setPageData] = React.useState<PageState>({});
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+export default function TeamOverview(): JSX.Element {
+  const location = useLocation();
+  const { teamId } = useParams();
+  const [pageData, setPageData] = React.useState<PageState>({});
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-    React.useEffect(() => {
-        var getTeamUsers = async () => {
-            const {teamLeadId, teamMemberIds = []} = await getTeamOverview(teamId);
-            const teamLead = await getUserData(teamLeadId);
+  React.useEffect(() => {
+    const getTeamUsers = async (): Promise<void> => {
+      const { teamLeadId, teamMemberIds = [] } = await getTeamOverview(teamId);
 
-            const teamMembers = [];
-            for(var teamMemberId of teamMemberIds) {
-                const data = await getUserData(teamMemberId);
-                teamMembers.push(data);
-            }
-            setPageData({
-                teamLead,
-                teamMembers,
-            });
-            setIsLoading(false);
-        };
-        getTeamUsers();
-    }, [teamId]);
+      const fetchTeamLead = getUserData(teamLeadId);
+      const fetchTeamMembers = Promise.all(
+        teamMemberIds.map(
+          async (id): Promise<UserData> => await getUserData(id),
+        ),
+      );
 
-    return (
-        <Container>
-            <Header title={`Team ${location.state.name}`} />
-            {!isLoading && mapTLead(pageData.teamLead)}
-            <List items={mapArray(pageData?.teamMembers ?? [])} isLoading={isLoading} />
-        </Container>
-    );
-};
+      const [teamLead, teamMembers] = await Promise.all([
+        fetchTeamLead,
+        fetchTeamMembers,
+      ]);
 
-export default TeamOverview;
+      setPageData({
+        teamLead,
+        teamMembers,
+      });
+      setIsLoading(false);
+    };
+    void getTeamUsers();
+  }, [teamId]);
+
+  return (
+    <Flex
+      direction="column"
+      flexWrap="wrap"
+      justify="center"
+      align="center"
+      w="100%"
+    >
+      <Header title={`Team ${location.state.name}`} />
+      {!isLoading && mapTeamLeadToCard(pageData.teamLead)}
+      <List
+        items={mapUsersToListItems(pageData?.teamMembers ?? [])}
+        isLoading={isLoading}
+      />
+    </Flex>
+  );
+}

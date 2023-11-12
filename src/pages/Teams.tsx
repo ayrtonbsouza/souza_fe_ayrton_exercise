@@ -1,46 +1,55 @@
 import * as React from 'react';
-import {ListItem, Teams as TeamsList} from 'types';
-import {getTeams as fetchTeams} from '../api';
+import { type ListItem, type Teams as TeamsList } from 'types';
+import { Flex } from '@chakra-ui/react';
+import { getTeams as fetchTeams } from '../api';
 import Header from '../components/Header';
 import List from '../components/List';
-import {Container} from '../components/GlobalComponents';
 
-var MapT = (teams: TeamsList[]) => {
-    return teams.map(team => {
-        var columns = [
-            {
-                key: 'Name',
-                value: team.name,
-            },
-        ];
-        return {
-            id: team.id,
-            url: `/team/${team.id}`,
-            columns,
-            navigationProps: team,
-        } as ListItem;
-    });
-};
+const mapTeamsToListItems = (teams: TeamsList[]): ListItem[] =>
+  teams.map(team => {
+    const columns = [
+      {
+        key: 'Name',
+        value: team.name,
+      },
+    ];
 
-const Teams = () => {
-    const [teams, setTeams] = React.useState<any>([]);
-    const [isLoading, setIsLoading] = React.useState<any>(true);
+    const listItem: ListItem = {
+      id: team.id,
+      url: `/team/${team.id}`,
+      columns,
+      navigationProps: team,
+    };
 
-    React.useEffect(() => {
-        const getTeams = async () => {
-            const response = await fetchTeams();
-            setTeams(response);
-            setIsLoading(false);
-        };
-        getTeams();
-    }, []);
+    return listItem;
+  });
 
-    return (
-        <Container>
-            <Header title="Teams" showBackButton={false} />
-            <List items={MapT(teams)} isLoading={isLoading} />
-        </Container>
-    );
-};
+function Teams(): JSX.Element {
+  const [teams, setTeams] = React.useState<TeamsList[]>([]);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    const getTeams = async (): Promise<void> => {
+      const response = await fetchTeams();
+      setTeams(response);
+      setIsLoading(false);
+    };
+
+    void getTeams();
+  }, []);
+
+  return (
+    <Flex
+      direction="column"
+      flexWrap="wrap"
+      justify="center"
+      align="center"
+      w="100%"
+    >
+      <Header title="Teams" showBackButton={false} />
+      <List items={mapTeamsToListItems(teams)} isLoading={isLoading} />
+    </Flex>
+  );
+}
 
 export default Teams;
